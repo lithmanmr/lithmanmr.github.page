@@ -1805,9 +1805,6 @@
                 <button class="btn btn-info" onclick="generarPropuesta()">
                     <i class="fas fa-file-alt"></i> Generar Propuesta
                 </button>
-                <button class="btn btn-primary" onclick="compartirPresupuesto()">
-                    <i class="fas fa-share-alt"></i> Compartir
-                </button>
             </div>
 
             <div id="alertPresupuesto"></div>
@@ -1979,7 +1976,7 @@
                         // 4. Abrir el menú nativo de compartir
                         await navigator.share({
                             title: 'Cotización TopCal',
-                            text: `Cotización generada por TopCal Professional`,
+                            text: `Cotización generada por TopCal`,
                             files: [pdfFile]
                         });
                         
@@ -3363,10 +3360,6 @@
                 doc.text('Ayacucho - Huamanga', infoContactoX, infoContactoY);
                 infoContactoY += 4;
                 
-                // AQUÍ CAMBIAS TU DIRECCIÓN LÍNEA 2 ↓
-                doc.text('Lima, Perú', infoContactoX, infoContactoY);
-                infoContactoY += 4;
-                
                 // AQUÍ CAMBIAS TU PÁGINA WEB ↓
                 doc.setTextColor(...colores.acento);
                 doc.text('www.topcalpro.com', infoContactoX, infoContactoY);
@@ -3663,7 +3656,7 @@
                         { nombre: 'DESCRIP.', ancho: 55, alineacion: 'left' },
                         { nombre: 'UNIDAD', ancho: 20, alineacion: 'center' },
                         { nombre: 'CANT.', ancho: 20, alineacion: 'center' },
-                        { nombre: 'C/U', ancho: 28, alineacion: 'right' },
+                        { nombre: 'C/U', ancho: 28, alineacion: 'center' },
                         { nombre: 'PARCIAL', ancho: 28, alineacion: 'right' }
                     ];
                     
@@ -4268,7 +4261,7 @@
             }
 
             const propuesta = `
-PROPUESTA COMERCIAL - TOPCAL PROFESSIONAL
+PROPUESTA COMERCIAL - TOPCAL
 ==========================================
 
 INFORMACIÓN DEL CLIENTE
@@ -4285,7 +4278,6 @@ TopCal ofrece servicios generales de topografía. Nuestro equipo garantiza resul
 
 VALOR AGREGADO
 --------------
-✓ Equipos de última generación
 ✓ Personal certificado
 ✓ Procesos optimizados
 ✓ Garantía de calidad
@@ -4302,10 +4294,10 @@ PRÓXIMOS PASOS
 
 CONTACTO
 --------
-Para más información, no dude en contactarnos.
+Para más información, no dude en contactarnos (lithmanmr1011@gmail.com - 917 514 248).
 
 Atentamente,
-Equipo TopCal Professional
+Equipo TopCal 
             `;
 
             const blob = new Blob([propuesta], { type: 'text/plain;charset=utf-8' });
@@ -4328,115 +4320,6 @@ Equipo TopCal Professional
                 '✅ Propuesta comercial generada<br>' +
                 '📄 Puede personalizar este documento antes de enviarlo al cliente.', 
                 'success');
-        }
-
-        function compartirPresupuesto() {
-            try {
-                if (insumos.length === 0) {
-                    showAlert('alertPresupuesto', '⚠️ No hay presupuesto para compartir', 'warning');
-                    return;
-                }
-
-                if (!datosGenerales || !datosGenerales.cliente) {
-                    showAlert('alertPresupuesto', '⚠️ Complete los datos generales primero', 'warning');
-                    return;
-                }
-
-                const incluirIGV = document.getElementById('incluirIGV').checked;
-                const incluirUtilidad = document.getElementById('incluirUtilidad').checked;
-                const moneda = datosGenerales.moneda || 'Soles';
-                const simbolo = moneda === 'Dólares' ? '$' : moneda === 'Euros' ? '€' : 'S/.';
-                const igvPorcentaje = configuracion.igv || 18;
-
-                let subtotal = 0;
-                let utilidad = 0;
-                insumos.forEach(insumo => {
-                    const subtotalItem = insumo.cantidad * insumo.costoUnitario;
-                    subtotal += subtotalItem;
-                    utilidad += incluirUtilidad ? subtotalItem * (insumo.margenUtilidad / 100) : 0;
-                });
-                
-                const subtotalConUtilidad = subtotal + utilidad;
-                const igv = incluirIGV ? subtotalConUtilidad * (igvPorcentaje / 100) : 0;
-                const total = subtotalConUtilidad + igv;
-                const categoriasUnicas = [...new Set(insumos.map(i => i.categoria))];
-
-                const resumen = `
-COTIZACIÓN TOPCAL PROFESSIONAL
-${'='.repeat(50)}
-
-DATOS DEL PROYECTO
-${'-'.repeat(30)}
-Cliente: ${datosGenerales.cliente}
-Proyecto: ${datosGenerales.tipoProyecto || ''}
-Ubicación: ${datosGenerales.ubicacion || ''}
-Fecha: ${datosGenerales.fecha || new Date().toLocaleDateString()}
-Plazo: ${datosGenerales.plazo || 'No especificado'}
-
-RESUMEN FINANCIERO
-${'-'.repeat(30)}
-Subtotal Insumos: ${simbolo} ${subtotal.toFixed(2)}
-${incluirUtilidad ? `Margen de Utilidad: ${simbolo} ${utilidad.toFixed(2)}` : ''}
-${incluirIGV ? `IGV (${igvPorcentaje}%): ${simbolo} ${igv.toFixed(2)}` : ''}
-${'─'.repeat(30)}
-TOTAL GENERAL: ${simbolo} ${total.toFixed(2)}
-
-ESTADÍSTICAS
-${'-'.repeat(30)}
-• Ítems totales: ${insumos.length}
-• Categorías: ${categoriasUnicas.length}
-• Moneda: ${moneda} (${simbolo})
-
-CONTACTO
-${'-'.repeat(30)}
-Email: ${datosGenerales.email || 'No especificado'}
-Teléfono: ${datosGenerales.telefono || 'No especificado'}
-
-${'='.repeat(50)}
-Documento generado con TopCal Professional v3.0
-Fecha: ${new Date().toLocaleString()}
-© ${new Date().getFullYear()} TopCal Professional
-                `;
-
-                if (navigator.share && navigator.canShare) {
-                    navigator.share({
-                        title: `Cotización ${datosGenerales.cliente}`,
-                        text: resumen,
-                        files: []
-                    }).catch(() => {
-                        // Fallback a descarga
-                        descargarArchivo(resumen);
-                    });
-                } else {
-                    descargarArchivo(resumen);
-                }
-
-                function descargarArchivo(contenido) {
-                    const blob = new Blob([contenido], { type: 'text/plain;charset=utf-8' });
-                    const url = URL.createObjectURL(blob);
-                    
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = `Resumen_Cotizacion_${datosGenerales.cliente.replace(/[^a-z0-9]/gi, '_')}.txt`;
-                    a.style.display = 'none';
-                    
-                    document.body.appendChild(a);
-                    a.click();
-                    
-                    setTimeout(() => {
-                        document.body.removeChild(a);
-                        URL.revokeObjectURL(url);
-                    }, 100);
-                }
-
-                showAlert('alertPresupuesto', 
-                    '✅ Presupuesto listo para compartir<br>' +
-                    '📄 El resumen ha sido generado y está listo para enviar.', 
-                    'success');
-
-            } catch (error) {
-                showAlert('alertPresupuesto', '❌ Error al compartir: ' + error.message, 'error');
-            }
         }
 
         // ========== FUNCIONES CONFIGURACIÓN ==========
