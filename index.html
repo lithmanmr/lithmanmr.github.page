@@ -1335,14 +1335,115 @@
                 display: block !important;
             }
         }
+
+        /* ========== PRELOADER ========== */
+        #preloader {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 99999;
+            transition: opacity 0.5s ease, visibility 0.5s ease;
+        }
+
+        #preloader.fade-out {
+            opacity: 0;
+            visibility: hidden;
+        }
+
+        .preloader-content {
+            text-align: center;
+            animation: fadeInUp 0.8s ease-out;
+        }
+
+        .preloader-logo {
+            width: 100px;
+            height: 100px;
+            margin-bottom: 20px;
+            animation: pulse 2s infinite;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        .preloader-title {
+            font-size: 3rem;
+            color: white;
+            margin: 0;
+            font-weight: 700;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .preloader-subtitle {
+            font-size: 1.2rem;
+            color: var(--light-accent);
+            margin: 5px 0 30px 0;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+        }
+
+        .preloader-spinner {
+            width: 50px;
+            height: 50px;
+            margin: 20px auto;
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-top: 4px solid white;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        .preloader-text {
+            color: white;
+            font-size: 0.9rem;
+            margin-top: 15px;
+            opacity: 0.9;
+            animation: blink 1.5s infinite;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 0.9; }
+            50% { opacity: 0.4; }
+        }
+
+        /* Ocultar contenido mientras carga */
+        body.loading .container {
+            opacity: 0;
+        }
     </style>
 </head>
 <body>
+
+    <!-- ========== PANTALLA DE PRECARGA ========== -->
+    <div id="preloader">
+        <div class="preloader-content">
+            <img src="assets/montaña.png" alt="TopCal Logo" class="preloader-logo">
+            <h1 class="preloader-title">TopCal</h1>
+            <p class="preloader-subtitle">App</p>
+            <div class="preloader-spinner"></div>
+            <p class="preloader-text">Cargando...</p>
+        </div>
+    </div>
+
     <div class="container">
         <div class="header">
-            <div class="logo">🗺️</div>
-            <h1>TopCal Professional</h1>
-            <p>Sistema de Cotizaciones Topográficas - Generación de Presupuestos Inteligentes</p>
+            <div class="logo">👷</div>
+            <h1>App TopCal</h1>
+            <p>Sistema de Cotizaciones para Servicios Topográficos</p>
             <div class="progress-bar mt-30">
                 <div class="progress-fill" id="progressFill" style="width: 33%"></div>
             </div>
@@ -1388,7 +1489,7 @@
         <!-- TAB 1: DATOS GENERALES -->
         <div class="tab-content active">
             <h2 class="text-center mb-30" style="color: var(--primary-color);">
-                <span>📋</span> Información del Proyecto
+                <span>📋</span> Datos Cliente y Proyecto
             </h2>
             
             <div class="notes">
@@ -1398,12 +1499,7 @@
             
             <div class="form-row">
                 <div class="form-group">
-                    <label>Nombre o Razón Social *</label>
-                    <input type="text" id="nombreEmpresa" placeholder="Ingrese nombre o razón social" required>
-                    <div class="validation-message error" id="nombreEmpresaError"></div>
-                </div>
-                <div class="form-group">
-                    <label>Cliente *</label>
+                    <label>Cliente/Razón Social *</label>
                     <input type="text" id="cliente" placeholder="Nombre del cliente o empresa" required>
                     <div class="validation-message error" id="clienteError"></div>
                 </div>
@@ -1652,11 +1748,6 @@
                     <label>Margen de Utilidad (%)</label>
                     <input type="number" id="margenUtilidad" step="0.1" min="0" max="100" placeholder="20">
                 </div>
-            </div>
-
-            <div class="form-group">
-                <label>Notas Adicionales del Insumo</label>
-                <input type="text" id="notasInsumo" placeholder="Observaciones específicas de este ítem...">
             </div>
 
             <div class="text-center mt-20">
@@ -2211,7 +2302,7 @@
 
         function validarFormularioDatos() {
             let valid = true;
-            const requiredFields = ['nombreEmpresa', 'cliente', 'email', 'telefono', 'ubicacion', 
+            const requiredFields = ['cliente', 'email', 'telefono', 'ubicacion', 
                                   'descripcionTrabajo', 'tipoProyecto', 'fecha', 'plazo', 'moneda'];
             
             requiredFields.forEach(fieldId => {
@@ -2258,19 +2349,28 @@
         }
 
         function actualizarEstadisticasDatos() {
-            const fields = document.querySelectorAll('#tab-1 input[required], #tab-1 select[required]');
+            // Seleccionar todos los campos requeridos de la primera pestaña
+            const tabDatos = document.querySelectorAll('.tab-content')[0]; // Primera pestaña
+            const fields = tabDatos.querySelectorAll('input[required], select[required]');
             let completed = 0;
             
             fields.forEach(field => {
-                if (field.value.trim()) completed++;
+                if (field.value && field.value.trim()) {
+                    completed++;
+                }
             });
             
             const total = fields.length;
             const percentage = total > 0 ? Math.round((completed / total) * 100) : 0;
             
-            document.getElementById('camposCompletados').textContent = completed;
-            document.getElementById('camposObligatorios').textContent = total;
-            document.getElementById('progresoDatos').textContent = `${percentage}%`;
+            // Actualizar los contadores
+            const camposCompletadosEl = document.getElementById('camposCompletados');
+            const camposObligatoriosEl = document.getElementById('camposObligatorios');
+            const progresoDatosEl = document.getElementById('progresoDatos');
+            
+            if (camposCompletadosEl) camposCompletadosEl.textContent = completed;
+            if (camposObligatoriosEl) camposObligatoriosEl.textContent = total;
+            if (progresoDatosEl) progresoDatosEl.textContent = `${percentage}%`;
         }
 
         function guardarDatosGenerales() {
@@ -2281,7 +2381,6 @@
                 }
 
                 datosGenerales = {
-                    nombreEmpresa: document.getElementById('nombreEmpresa').value.trim(),
                     cliente: document.getElementById('cliente').value.trim(),
                     email: document.getElementById('email').value.trim(),
                     telefono: document.getElementById('telefono').value.trim(),
@@ -2379,8 +2478,6 @@
                 } else if (configuracion && configuracion.utilidad) {
                     margenUtilidad = parseFloat(configuracion.utilidad);
                 }
-                
-                const notas = document.getElementById('notasInsumo').value.trim();
 
                 if (!categoria || !descripcion || !unidad || isNaN(cantidad) || isNaN(costoUnitario)) {
                     showAlert('alertInsumos', '⚠️ Complete todos los campos obligatorios correctamente', 'error');
@@ -2410,7 +2507,6 @@
                     subtotal,
                     utilidad,
                     parcial,
-                    notas,
                     fechaRegistro: new Date().toISOString()
                 });
                 
@@ -2496,7 +2592,6 @@
                         </td>
                         <td>
                             <strong>${insumo.descripcion}</strong>
-                            ${insumo.notas ? `<br><small style="color: #666; font-size: 0.85em;">${insumo.notas}</small>` : ''}
                         </td>
                         <td>${insumo.unidad}</td>
                         <td>${insumo.cantidad.toFixed(2)}</td>
@@ -2538,7 +2633,6 @@
                         <h4 style="color: var(--primary-color); margin-bottom: 8px; font-size: 1rem;">
                             ${insumo.descripcion}
                         </h4>
-                        ${insumo.notas ? `<p style="color: #666; font-size: 0.85rem; margin-bottom: 8px; font-style: italic;">${insumo.notas}</p>` : ''}
                         <div class="mobile-card-row">
                             <span class="mobile-card-label">Cantidad:</span>
                             <span class="mobile-card-data">${insumo.cantidad.toFixed(2)} ${insumo.unidad}</span>
@@ -2596,7 +2690,6 @@
             document.getElementById('descripcion').innerHTML = '<option value="">Seleccione categoría primero...</option>';
             document.getElementById('cantidad').value = '';
             document.getElementById('costoUnitario').value = '';
-            document.getElementById('notasInsumo').value = '';
         }
 
         function guardarInsumosAuto() {
@@ -3441,7 +3534,7 @@
                 
                 // DATOS GENERALES EN VERTICAL (MÁS ARRIBA Y COMPACTO)
                 yPos += 12; // Menos espacio
-                yPos = crearCuadroTitulo(doc, 'DATOS GENERALES DEL PROYECTO', margin.left, yPos, contentWidth, 12);
+                yPos = crearCuadroTitulo(doc, 'DATOS GENERALES', margin.left, yPos, contentWidth, 12);
                 
                 // Cuadro de datos generales EN UNA SOLA COLUMNA
                 const datosY = crearTarjetaDatos(doc, margin.left, yPos, contentWidth, 100); // Más compacto
@@ -3456,38 +3549,65 @@
                     { label: 'Tipo de Proyecto:', value: datosGenerales.tipoProyecto || 'No especificado' }, // CAMBIADO
                     { label: 'Plazo:', value: (datosGenerales.plazo || 'No especificado') + (datosGenerales.plazoUnidad ? ' ' + datosGenerales.plazoUnidad : ' días') },
                     { label: 'Ubicación:', value: datosGenerales.ubicacion || 'No especificado' },
-                    { label: 'Moneda:', value: moneda },
+                    { label: 'Tipo de Moneda:', value: moneda },
                     { label: 'Descripción del Proyecto:', value: datosGenerales.descripcionTrabajo || 'No especificado' }, // CAMBIADO
                     { label: 'Email:', value: datosGenerales.email || 'No especificado' },
                     { label: 'Dimensiones (Metrado):', value: datosGenerales.metrado || 'No especificado' }, // Más corto
                     { label: 'Teléfono:', value: datosGenerales.telefono || 'No especificado' }
                 ];
+
+                // ⭐ AGREGAR OBSERVACIONES SI EXISTEN ⭐
+                if (datosGenerales.observaciones && datosGenerales.observaciones.trim() !== '') {
+                    datosVerticales.push({
+                        label: 'Observaciones:',
+                        value: datosGenerales.observaciones.trim(),
+                        cursiva: true // Marca especial para mostrar en cursiva
+                    });
+                }
                 
                 // Mostrar datos en VERTICAL compacto
                 datosVerticales.forEach((dato) => {
-                    // Label
-                    doc.setFont('helvetica', 'bold');
-                    doc.setTextColor(...colores.primario);
-                    
-                    // Label más corto si es necesario
-                    let labelCorto;
-                    if (dato.label === 'Descripción del Proyecto:') {
-                        labelCorto = dato.label; // COMPLETO
+                    // ⭐ SI ES OBSERVACIONES, CONFIGURACIÓN ESPECIAL ⭐
+                    if (dato.cursiva) {
+                        // Label OBSERVACIONES en cursiva, anaranjado y un tamaño menor
+                        doc.setFont('helvetica', 'italic'); // Cursiva
+                        doc.setTextColor(...colores.acento); // Color anaranjado
+                        doc.setFontSize(8); // Tamaño 1 menos (era 9, ahora 8)
+                        
+                        doc.text('Observaciones:', margin.left + 8, datosActualY);
+                        
+                        // Valor también en cursiva, anaranjado y mismo tamaño
+                        doc.setFont('helvetica', 'italic'); // Cursiva
+                        doc.setTextColor(...colores.acento); // Color anaranjado
+                        doc.setFontSize(8); // Mismo tamaño reducido
+                        
                     } else {
-                        labelCorto = dato.label.length > 22 ? dato.label.substring(0, 20) + '...' : dato.label;
+                        // Labels normales
+                        doc.setFont('helvetica', 'bold');
+                        doc.setTextColor(...colores.primario);
+                        doc.setFontSize(9); // Tamaño normal
+                        
+                        let labelCorto;
+                        if (dato.label === 'Descripción del Proyecto:') {
+                            labelCorto = dato.label;
+                        } else {
+                            labelCorto = dato.label.length > 22 ? dato.label.substring(0, 20) + '...' : dato.label;
+                        }
+                        doc.text(labelCorto, margin.left + 8, datosActualY);
+                        
+                        // Valor normal
+                        doc.setFont('helvetica', 'normal');
+                        doc.setTextColor(...colores.texto);
                     }
-                    doc.text(labelCorto, margin.left + 8, datosActualY);
                     
-                    // Valor
-                    doc.setFont('helvetica', 'normal');
-                    doc.setTextColor(...colores.texto);
-                    
-                    // Manejar valores largos
                     let valorTexto = dato.value.toString();
-                    const maxAncho = contentWidth - 65; // Menos espacio para valores
+                    const maxAncho = contentWidth - 65;
                     
-                    // Para descripciones y emails largos
-                    if (dato.label === 'Descripción del Proyecto:' || dato.label === 'Email:') {
+                    // Para descripciones, emails y observaciones largos
+                    if (dato.label === 'Descripción del Proyecto:' || 
+                        dato.label === 'Email:' || 
+                        dato.label === 'Observaciones:') {
+                        
                         const lineas = doc.splitTextToSize(valorTexto, maxAncho);
                         lineas.forEach((linea, index) => {
                             if (index === 0) {
@@ -3500,7 +3620,6 @@
                     } else {
                         const lineas = doc.splitTextToSize(valorTexto, maxAncho);
                         doc.text(lineas[0], margin.left + 50, datosActualY);
-                        // Si hay más líneas, continuar
                         if (lineas.length > 1) {
                             for (let i = 1; i < lineas.length; i++) {
                                 datosActualY += 4;
@@ -3509,8 +3628,10 @@
                         }
                     }
                     
-                    datosActualY += 7; // Espacio reducido
+                    datosActualY += 7; // Espacio entre campos
                 });
+
+                doc.setFontSize(9); // Volver al tamaño normal
                 
                 // Fecha de generación
                 yPos = datosY + 105; // Ajustado
@@ -4448,10 +4569,27 @@ Equipo TopCal
         // ========== FUNCIONES DE AYUDA ==========
 
         function mostrarAcercaDe() {
-            alert(`TopCal v2.0\n\nSistema de Cotizaciones Topográficas\nDesarrollado por Lithman Morales\n\n© 2026 - Todos los derechos reservados\n\nCaracterísticas:\n• Gestión completa de cotizaciones\n• Exportación PDF\n• Configuración personalizable`);
+            alert(`TopCal v2.0\n\nSistema de Cotizaciones Topográficas\nDesarrollado por Lithman A. Morales Rivera\n\n© 2026 - Todos los derechos reservados\n\nCaracterísticas:\n• Gestión completa de cotizaciones\n• Exportación PDF\n• Configuración personalizable`);
         }
 
         // ========== INICIALIZACIÓN ==========
+
+        // ========== PRELOADER ========== 
+        window.addEventListener('load', function() {
+            // Ocultar preloader después de 1.5 segundos
+            setTimeout(function() {
+                const preloader = document.getElementById('preloader');
+                if (preloader) {
+                    preloader.classList.add('fade-out');
+                    
+                    // Remover del DOM después de la animación
+                    setTimeout(function() {
+                        preloader.remove();
+                        document.body.classList.remove('loading');
+                    }, 500);
+                }
+            }, 2000); // 1.5 segundos
+        });
 
         window.addEventListener('DOMContentLoaded', function() {
             // Establecer fecha predeterminada
@@ -4514,9 +4652,14 @@ Equipo TopCal
             }
             
             // Validación en tiempo real
-            document.querySelectorAll('#tab-1 input[required], #tab-1 select[required]').forEach(field => {
+            // Validación en tiempo real
+            const tabDatos = document.querySelectorAll('.tab-content')[0];
+            const camposRequeridos = tabDatos.querySelectorAll('input[required], select[required], textarea[required]');
+
+            camposRequeridos.forEach(field => {
                 field.addEventListener('blur', validarFormularioDatos);
                 field.addEventListener('input', actualizarEstadisticasDatos);
+                field.addEventListener('change', actualizarEstadisticasDatos); // Para selects y dates
             });
             
             // Actualizar estadísticas iniciales
