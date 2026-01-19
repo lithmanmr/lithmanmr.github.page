@@ -1800,7 +1800,7 @@
 
             <div class="text-center mt-30">
                 <button class="btn btn-success" onclick="exportarPDF()">
-                    <i class="fas fa-file-pdf"></i> Exportar PDF
+                    <i class="fas fa-file-pdf"></i> Generar PDF
                 </button>
                 <button class="btn btn-info" onclick="generarPropuesta()">
                     <i class="fas fa-file-alt"></i> Generar Propuesta
@@ -1958,6 +1958,76 @@
                 dropdown.querySelectorAll('.dropdown-option').forEach(opt => {
                     opt.classList.remove('hidden');
                 });
+            }
+        }
+
+        // ========== FUNCIÓN PARA COMPARTIR PDF EN MÓVIL ==========
+        async function compartirPDFMovil(pdfBlob, nombreArchivo) {
+            try {
+                // 1. Verificar si el navegador soporta compartir archivos
+                if (navigator.share && navigator.canShare) {
+                    
+                    // 2. Convertir el Blob del PDF en un archivo File
+                    const pdfFile = new File([pdfBlob], nombreArchivo, { 
+                        type: 'application/pdf',
+                        lastModified: new Date().getTime()
+                    });
+                    
+                    // 3. Verificar si se puede compartir este tipo de archivo
+                    if (navigator.canShare({ files: [pdfFile] })) {
+                        
+                        // 4. Abrir el menú nativo de compartir
+                        await navigator.share({
+                            title: 'Cotización TopCal',
+                            text: `Cotización generada por TopCal Professional`,
+                            files: [pdfFile]
+                        });
+                        
+                        // 5. Si se compartió exitosamente
+                        showAlert('alertPresupuesto', 
+                            '✅ PDF compartido correctamente', 
+                            'success');
+                        
+                    } else {
+                        // El navegador no puede compartir archivos PDF
+                        throw new Error('Tu navegador no puede compartir archivos PDF');
+                    }
+                    
+                } else {
+                    // El navegador no soporta Web Share API
+                    throw new Error('Función de compartir no disponible en este navegador');
+                }
+                
+            } catch (error) {
+                // Si hubo algún error o el usuario canceló
+                if (error.name === 'AbortError') {
+                    // El usuario canceló el compartir
+                    showAlert('alertPresupuesto', 
+                        'ℹ️ Compartir cancelado', 
+                        'info');
+                } else {
+                    // Otro error - ofrecer alternativa
+                    console.error('Error al compartir:', error);
+                    
+                    // PLAN B: Descargar el archivo
+                    const fallbackDescargar = confirm(
+                        'No se puede compartir directamente.\n\n' +
+                        '¿Deseas descargar el PDF para compartirlo manualmente?'
+                    );
+                    
+                    if (fallbackDescargar) {
+                        const pdfUrl = URL.createObjectURL(pdfBlob);
+                        const link = document.createElement('a');
+                        link.href = pdfUrl;
+                        link.download = nombreArchivo;
+                        link.click();
+                        URL.revokeObjectURL(pdfUrl);
+                        
+                        showAlert('alertPresupuesto', 
+                            '💾 PDF descargado. Ahora puedes compartirlo desde tus archivos.', 
+                            'info');
+                    }
+                }
             }
         }
 
@@ -4134,6 +4204,7 @@
                                     onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none';">
                                 📄 Abrir PDF
                             </button>
+                            
                             <button onclick="const link = document.createElement('a'); 
                                             link.href = '${pdfUrl}'; 
                                             link.download = '${nombreArchivo}'; 
@@ -4146,11 +4217,32 @@
                                     onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none';">
                                 💾 Descargar
                             </button>
+                            
+                            <!-- ⭐ NUEVO BOTÓN COMPARTIR ⭐ -->
+                            <button id="btnCompartirPDF" 
+                                    style="padding: 12px 24px; background: #28a745; color: white; 
+                                        border: none; border-radius: 6px; cursor: pointer; 
+                                        font-weight: bold; min-width: 120px;
+                                        transition: all 0.3s ease;"
+                                    onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 8px rgba(0,0,0,0.2)';"
+                                    onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none';">
+                                📤 Compartir
+                            </button>
                         </div>
                     </div>
                 `;
                 
                 document.body.appendChild(modal);
+
+                // AGREGAR FUNCIONALIDAD AL BOTÓN COMPARTIR
+                setTimeout(() => {
+                    const btnCompartir = document.getElementById('btnCompartirPDF');
+                    if (btnCompartir) {
+                        btnCompartir.addEventListener('click', async () => {
+                            await compartirPDFMovil(pdfBlob, nombreArchivo);
+                        });
+                    }
+                }, 100);
                 
                 // Auto-cerrar después de 30 segundos
                 setTimeout(() => {
@@ -4189,7 +4281,7 @@ INFORMACIÓN DEL CLIENTE
 
 NUESTRA PROPUESTA
 -----------------
-TopCal Professional ofrece servicios de topografía de alta precisión utilizando tecnología de vanguardia. Nuestro equipo certificado garantiza resultados precisos y confiables.
+TopCal ofrece servicios generales de topografía. Nuestro equipo garantiza resultados precisos y confiables.
 
 VALOR AGREGADO
 --------------
